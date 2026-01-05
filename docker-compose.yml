@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  server:
+    build: ./server
+    ports:
+      - '3001:3001'
+    environment:
+      - PORT=3001
+      - JWT_SECRET=collabflow_super_secret_key_2024
+      - DATABASE_URL=${DATABASE_URL}
+
+  client:
+    build: ./client
+    ports:
+      - '3002:80'
+    depends_on:
+      - server
