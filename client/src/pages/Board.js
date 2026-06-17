@@ -12,8 +12,17 @@ function Board() {
   const [board, setBoard] = useState(null);
   const [newCard, setNewCard] = useState({});
 
+  const fetchBoard = async () => {
+    try {
+      const res = await API.get(`/boards/${id}`);
+      setBoard(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-useEffect(() => {
+  useEffect(() => {
     fetchBoard();
     socket.emit('join-board', id);
     socket.on('card-moved', (data) => {
@@ -28,15 +37,6 @@ useEffect(() => {
       socket.off('card-created');
     };
   }, [id]);
-
-  const fetchBoard = async () => {
-    try {
-      const res = await API.get(`/boards/${id}`);
-      setBoard(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const addCard = async (columnId) => {
     const title = newCard[columnId];
