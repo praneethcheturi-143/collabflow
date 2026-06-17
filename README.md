@@ -1,11 +1,89 @@
+# CollabFlow
+
+**A real-time collaborative task management platform built for modern teams.**
+
+Live Demo: https://collabflow-seven.vercel.app
+Backend API: https://collabflow-api.onrender.com
+GitHub: https://github.com/praneethcheturi-143/collabflow
+
 ---
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL or Neon account
-- Docker (optional)
+- JWT Authentication with bcrypt password hashing and role-based access control
+- Kanban Boards with To Do / In Progress / Done columns
+- Drag and Drop card movement powered by @hello-pangea/dnd
+- Real-Time Sync — all changes instantly broadcast via WebSockets (Socket.io)
+- Multi-User collaboration on the same board simultaneously
+- Cloud PostgreSQL database on Neon with optimised indexed queries
+- Dockerised full stack with Docker Compose
+- Auto CI/CD — deploys to Vercel on every GitHub push
+
+---
+
+## Tech Stack
+
+### Frontend
+- React 18
+- React Router v6
+- Socket.io Client
+- @hello-pangea/dnd
+- Axios
+
+### Backend
+- Node.js + Express.js
+- Socket.io
+- Sequelize ORM
+- PostgreSQL (Neon Cloud)
+- JWT + bcryptjs
+- Joi validation
+
+### DevOps
+- Docker + Docker Compose
+- GitHub Actions CI/CD
+- Render (backend hosting)
+- Vercel (frontend hosting)
+
+---
+
+## Database Schema
+
+Users --> Boards --> Columns --> Cards
+
+- Users have many Boards
+- Boards have many Columns
+- Columns have many Cards
+
+---
+
+## API Endpoints
+
+### Auth
+- POST /api/auth/register
+- POST /api/auth/login
+
+### Boards
+- GET /api/boards
+- POST /api/boards
+- GET /api/boards/:id
+- DELETE /api/boards/:id
+
+### Cards
+- POST /api/cards
+- PUT /api/cards/:id
+- DELETE /api/cards/:id
+
+---
+
+## Real-Time WebSocket Events
+
+- join-board — client joins a board room
+- card-moved — card dragged to new column, broadcast to all users
+- card-created — new card added, broadcast to all users
+
+---
+
+## Quick Start
 
 ### 1. Clone the repository
 ```bash
@@ -13,24 +91,25 @@ git clone https://github.com/praneethcheturi-143/collabflow.git
 cd collabflow
 ```
 
-### 2. Set up the backend
+### 2. Backend setup
 ```bash
 cd server
 npm install
 ```
 
-Create `.env` file:
-```env
+Create a `.env` file:
+
 PORT=3001
+
 JWT_SECRET=your_jwt_secret
+
 DATABASE_URL=your_postgresql_url
-```
 
 ```bash
 npm run dev
 ```
 
-### 3. Set up the frontend
+### 3. Frontend setup
 ```bash
 cd ../client
 npm install
@@ -44,99 +123,48 @@ docker-compose up
 
 ---
 
-## 🌐 Live Demo
-
-| Service | URL |
-|---------|-----|
-| Frontend | https://collabflow-seven.vercel.app |
-| Backend API | https://collabflow-api.onrender.com |
-| GitHub | https://github.com/praneethcheturi-143/collabflow |
-
----
-
-## 📁 Project Structure
-
-
+## Project Structure
 
 collabflow/
 
-├── client/                 # React frontend
+├── client/
 
 │   ├── src/
 
-│   │   ├── api/           # Axios configuration
+│   │   ├── api/
 
-│   │   ├── pages/         # Login, Register, Dashboard, Board
+│   │   ├── pages/
 
-│   │   └── App.js         # Routes
+│   │   └── App.js
 
 │   └── package.json
 
-├── server/                 # Express backend
+├── server/
 
-│   ├── config/            # Database config
+│   ├── config/
 
-│   ├── middleware/        # JWT auth middleware
+│   ├── middleware/
 
-│   ├── models/            # Sequelize models
+│   ├── models/
 
-│   ├── routes/            # API routes
+│   ├── routes/
 
-│   └── index.js           # Server entry point
+│   └── index.js
 
-└── docker-compose.yml
-
-
+└── README.md
 
 ---
 
-## 🔌 API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login user |
-
-### Boards
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/boards` | Get all boards |
-| POST | `/api/boards` | Create board |
-| GET | `/api/boards/:id` | Get board with columns and cards |
-| DELETE | `/api/boards/:id` | Delete board |
-
-### Cards
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/cards` | Create card |
-| PUT | `/api/cards/:id` | Update/move card |
-| DELETE | `/api/cards/:id` | Delete card |
-
----
-
-## ⚡ Real-Time Events
-
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `join-board` | Client → Server | Join a board room |
-| `card-moved` | Bidirectional | Card dragged to new column |
-| `card-created` | Bidirectional | New card added |
-
----
-
-## 👨‍💻 Author
+## Author
 
 **Venkata Praneeth Cheturi**
-- GitHub: [@praneethcheturi-143](https://github.com/praneethcheturi-143)
+
+- GitHub: https://github.com/praneethcheturi-143
+- LinkedIn: https://linkedin.com/in/g-b-harshavardhan
 - Email: praneethcheturi@gmail.com
 
 ---
 
-## 📄 License
+## License
 
-MIT License — feel free to use this project for learning or inspiration.
-
----
-
-<p align="center">Built with ❤️ by Venkata Praneeth Cheturi</p>
+MIT License
