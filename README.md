@@ -160,7 +160,6 @@ collabflow/
 **Venkata Praneeth Cheturi**
 
 - GitHub: https://github.com/praneethcheturi-143
-- LinkedIn: https://linkedin.com/in/g-b-harshavardhan
 - Email: praneethcheturi@gmail.com
 
 ---
