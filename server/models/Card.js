@@ -28,6 +28,10 @@ const Card = sequelize.define('Card', {
   dueDate: {
     type: DataTypes.DATE,
   },
+  label: {
+    type: DataTypes.STRING,
+    defaultValue: 'none',
+  },
 });
 
 module.exports = Card;

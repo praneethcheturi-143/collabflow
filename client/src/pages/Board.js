@@ -6,11 +6,92 @@ import { io } from 'socket.io-client';
 
 const socket = io('https://collabflow-api.onrender.com');
 
+const LABELS = [
+  { value: 'none', label: 'None', color: 'transparent' },
+  { value: 'urgent', label: 'Urgent', color: '#ef4444' },
+  { value: 'feature', label: 'Feature', color: '#6366f1' },
+  { value: 'bug', label: 'Bug', color: '#f97316' },
+  { value: 'done', label: 'Done', color: '#22c55e' },
+];
+
+function getLabelColor(label) {
+  const found = LABELS.find(l => l.value === label);
+  return found ? found.color : 'transparent';
+}
+
+function Card({ card, onDelete }) {
+  const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
+  return (
+    <div style={styles.card}>
+      {card.label && card.label !== 'none' && (
+        <div style={{ ...styles.labelBar, background: getLabelColor(card.label) }} />
+      )}
+      <div style={styles.cardContent}>
+        <span style={styles.cardTitle}>{card.title}</span>
+        {card.dueDate && (
+          <span style={{ ...styles.dueDate, color: isOverdue ? '#ef4444' : '#94a3b8' }}>
+            {isOverdue ? '⚠️ ' : '📅 '}
+            {new Date(card.dueDate).toLocaleDateString()}
+          </span>
+        )}
+      </div>
+      <button onClick={() => onDelete(card.id)} style={styles.deleteBtn}>×</button>
+    </div>
+  );
+}
+
+function AddCardForm({ columnId, onAdd }) {
+  const [title, setTitle] = useState('');
+  const [label, setLabel] = useState('none');
+  const [dueDate, setDueDate] = useState('');
+  const [open, setOpen] = useState(false);
+
+  const handleAdd = async () => {
+    if (!title.trim()) return;
+    await onAdd(columnId, title, label, dueDate);
+    setTitle('');
+    setLabel('none');
+    setDueDate('');
+    setOpen(false);
+  };
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)} style={styles.addCardBtn}>+ Add a card</button>
+  );
+
+  return (
+    <div style={styles.addForm}>
+      <input
+        style={styles.cardInput}
+        placeholder="Card title..."
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleAdd()}
+        autoFocus
+      />
+      <select style={styles.select} value={label} onChange={e => setLabel(e.target.value)}>
+        {LABELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+      </select>
+      <input
+        style={styles.cardInput}
+        type="date"
+        value={dueDate}
+        onChange={e => setDueDate(e.target.value)}
+      />
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button onClick={handleAdd} style={styles.addBtn}>Add Card</button>
+        <button onClick={() => setOpen(false)} style={styles.cancelBtn}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function Board() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
-  const [newCard, setNewCard] = useState({});
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     const fetchBoard = async () => {
@@ -23,30 +104,30 @@ function Board() {
     };
 
     fetchBoard();
-    socket.emit('join-board', id);
+    socket.emit('join-board', { boardId: id, username: user?.username });
 
-    socket.on('card-moved', (data) => {
-      setBoard(prev => {
-        if (!prev) return prev;
-        return { ...prev, Columns: data.columns };
-      });
-    });
-
+    socket.on('board-users', (users) => setOnlineUsers(users));
+    socket.on('card-moved', () => fetchBoard());
     socket.on('card-created', () => fetchBoard());
 
     return () => {
+      socket.off('board-users');
       socket.off('card-moved');
       socket.off('card-created');
+      socket.emit('leave-board', { boardId: id, username: user?.username });
     };
-  }, [id]);
+  }, [id, user?.username]);
 
-  const addCard = async (columnId) => {
-    const title = newCard[columnId];
-    if (!title?.trim()) return;
+  const addCard = async (columnId, title, label, dueDate) => {
     try {
-      await API.post('/cards', { title, columnId, order: 0 });
+      await API.post('/cards', {
+        title,
+        columnId,
+        order: 0,
+        label,
+        dueDate: dueDate || null,
+      });
       socket.emit('card-created', { boardId: id });
-      setNewCard({ ...newCard, [columnId]: '' });
       const updated = await API.get(`/boards/${id}`);
       setBoard(updated.data);
     } catch (err) {
@@ -67,10 +148,7 @@ function Board() {
   const onDragEnd = async (result) => {
     if (!result.destination) return;
     const { source, destination, draggableId } = result;
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     try {
       await API.put(`/cards/${draggableId}`, {
@@ -79,48 +157,71 @@ function Board() {
       });
       const updated = await API.get(`/boards/${id}`);
       setBoard(updated.data);
-      socket.emit('card-moved', { boardId: id, columns: updated.data.Columns });
+      socket.emit('card-moved', { boardId: id });
     } catch (err) {
       console.error(err);
     }
   };
 
-  if (!board) return <div style={{ color: '#e2e8f0', padding: '2rem' }}>Loading...</div>;
+  if (!board) return (
+    <div style={styles.loading}>
+      <div style={styles.skeleton} />
+      <div style={styles.skeleton} />
+      <div style={styles.skeleton} />
+    </div>
+  );
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <button onClick={() => navigate('/')} style={styles.backBtn}>← Back</button>
         <h1 style={styles.title}>{board.title}</h1>
+        <div style={styles.onlineUsers}>
+          {onlineUsers.map((u, i) => (
+            <div key={i} style={styles.avatar} title={u}>
+              {u.charAt(0).toUpperCase()}
+            </div>
+          ))}
+        </div>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div style={styles.columns}>
           {board.Columns?.sort((a, b) => a.order - b.order).map(column => (
             <div key={column.id} style={styles.column}>
-              <h3 style={styles.columnTitle}>{column.title}</h3>
+              <div style={styles.columnHeader}>
+                <h3 style={styles.columnTitle}>{column.title}</h3>
+                <span style={styles.cardCount}>{column.Cards?.length || 0}</span>
+              </div>
 
               <Droppable droppableId={column.id}>
-                {(provided) => (
+                {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    style={styles.cardList}
+                    style={{
+                      ...styles.cardList,
+                      background: snapshot.isDraggingOver ? '#1a2744' : 'transparent',
+                      borderRadius: '8px',
+                      transition: 'background 0.2s',
+                    }}
                   >
                     {column.Cards?.sort((a, b) => a.order - b.order).map((card, index) => (
                       <Draggable key={card.id} draggableId={card.id} index={index}>
-                        {(provided) => (
+                        {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            style={{ ...styles.card, ...provided.draggableProps.style }}
+                            style={{
+                              ...provided.draggableProps.style,
+                              opacity: snapshot.isDragging ? 0.8 : 1,
+                              transform: snapshot.isDragging
+                                ? `${provided.draggableProps.style?.transform} rotate(2deg)`
+                                : provided.draggableProps.style?.transform,
+                            }}
                           >
-                            <span>{card.title}</span>
-                            <button
-                              onClick={() => deleteCard(card.id)}
-                              style={styles.deleteBtn}
-                            >×</button>
+                            <Card card={card} onDelete={deleteCard} />
                           </div>
                         )}
                       </Draggable>
@@ -130,16 +231,7 @@ function Board() {
                 )}
               </Droppable>
 
-              <div style={styles.addCard}>
-                <input
-                  style={styles.cardInput}
-                  placeholder="Add a card..."
-                  value={newCard[column.id] || ''}
-                  onChange={e => setNewCard({ ...newCard, [column.id]: e.target.value })}
-                  onKeyDown={e => e.key === 'Enter' && addCard(column.id)}
-                />
-                <button onClick={() => addCard(column.id)} style={styles.addBtn}>+</button>
-              </div>
+              <AddCardForm columnId={column.id} onAdd={addCard} />
             </div>
           ))}
         </div>
@@ -151,17 +243,30 @@ function Board() {
 const styles = {
   container: { minHeight: '100vh', background: '#0f172a' },
   header: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 2rem', background: '#1e293b', borderBottom: '1px solid #334155' },
-  backBtn: { background: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '0.4rem 1rem', borderRadius: '6px' },
-  title: { color: '#e2e8f0', fontSize: '1.5rem' },
+  backBtn: { background: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer' },
+  title: { color: '#e2e8f0', fontSize: '1.5rem', flex: 1 },
+  onlineUsers: { display: 'flex', gap: '0.5rem' },
+  avatar: { width: '32px', height: '32px', borderRadius: '50%', background: '#6366f1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: '600' },
   columns: { display: 'flex', gap: '1rem', padding: '2rem', overflowX: 'auto', alignItems: 'flex-start' },
-  column: { background: '#1e293b', borderRadius: '12px', padding: '1rem', minWidth: '280px', maxWidth: '280px' },
-  columnTitle: { color: '#e2e8f0', marginBottom: '1rem', fontSize: '1rem', fontWeight: '600' },
-  cardList: { minHeight: '100px', display: 'flex', flexDirection: 'column', gap: '0.5rem' },
-  card: { background: '#0f172a', padding: '0.75rem', borderRadius: '8px', color: '#e2e8f0', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  deleteBtn: { background: 'transparent', border: 'none', color: '#475569', fontSize: '1.2rem', lineHeight: 1 },
-  addCard: { display: 'flex', gap: '0.5rem', marginTop: '1rem' },
-  cardInput: { flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
-  addBtn: { padding: '0.5rem 0.75rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', fontSize: '1.1rem' },
+  column: { background: '#1e293b', borderRadius: '12px', padding: '1rem', minWidth: '300px', maxWidth: '300px' },
+  columnHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' },
+  columnTitle: { color: '#e2e8f0', fontSize: '1rem', fontWeight: '600' },
+  cardCount: { background: '#334155', color: '#94a3b8', borderRadius: '99px', padding: '2px 8px', fontSize: '11px' },
+  cardList: { minHeight: '100px', display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '4px' },
+  card: { background: '#0f172a', borderRadius: '8px', color: '#e2e8f0', border: '1px solid #334155', display: 'flex', alignItems: 'stretch', overflow: 'hidden' },
+  labelBar: { width: '4px', flexShrink: 0 },
+  cardContent: { flex: 1, padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' },
+  cardTitle: { fontSize: '0.9rem' },
+  dueDate: { fontSize: '0.75rem' },
+  deleteBtn: { background: 'transparent', border: 'none', color: '#475569', fontSize: '1.2rem', padding: '0 0.5rem', cursor: 'pointer' },
+  addCardBtn: { width: '100%', padding: '0.5rem', background: 'transparent', border: '1px dashed #334155', color: '#64748b', borderRadius: '6px', cursor: 'pointer', marginTop: '0.5rem', textAlign: 'left' },
+  addForm: { display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' },
+  cardInput: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
+  select: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
+  addBtn: { flex: 1, padding: '0.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
+  cancelBtn: { padding: '0.5rem 1rem', background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '6px', cursor: 'pointer' },
+  loading: { display: 'flex', gap: '1rem', padding: '2rem' },
+  skeleton: { width: '300px', height: '400px', background: '#1e293b', borderRadius: '12px', animation: 'pulse 1.5s infinite' },
 };
 
 export default Board;
