@@ -12,7 +12,8 @@ function Board() {
   const [board, setBoard] = useState(null);
   const [newCard, setNewCard] = useState({});
 
-  useEffect(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+useEffect(() => {
     fetchBoard();
     socket.emit('join-board', id);
     socket.on('card-moved', (data) => {
