@@ -95,11 +95,17 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
 
         <div style={styles.body}>
           <div style={styles.topRow}>
-            <input style={styles.titleInput} value={title} onChange={e => setTitle(e.target.value)} />
+            <input
+              style={styles.titleInput}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+            />
             <button onClick={onClose} style={styles.closeBtn}>×</button>
           </div>
 
           <div style={styles.grid}>
+
+            {/* LEFT COLUMN */}
             <div style={styles.left}>
 
               {/* Description */}
@@ -130,7 +136,11 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
                       onChange={() => toggleCheckItem(item.id, item.checked)}
                       style={{ cursor: 'pointer' }}
                     />
-                    <span style={{ ...styles.checkText, textDecoration: item.checked ? 'line-through' : 'none', color: item.checked ? '#475569' : '#e2e8f0' }}>
+                    <span style={{
+                      ...styles.checkText,
+                      textDecoration: item.checked ? 'line-through' : 'none',
+                      color: item.checked ? '#475569' : '#e2e8f0'
+                    }}>
                       {item.text}
                     </span>
                     <button onClick={() => deleteCheckItem(item.id)} style={styles.checkDelete}>×</button>
@@ -139,26 +149,29 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
               </div>
               <div style={styles.addRow}>
                 <input
-                  style={styles.commentInput}
+                  style={styles.rowInput}
                   placeholder="Add checklist item..."
                   value={checkItem}
                   onChange={e => setCheckItem(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addCheckItem()}
                 />
-                <button onClick={addCheckItem} style={styles.commentBtn}>Add</button>
+                <button onClick={addCheckItem} style={styles.addBtn}>+ Add</button>
               </div>
+
+              {/* Divider */}
+              <div style={styles.divider} />
 
               {/* Comments */}
               <label style={styles.label}>Comments</label>
               <div style={styles.addRow}>
                 <input
-                  style={styles.commentInput}
+                  style={styles.rowInput}
                   placeholder="Write a comment..."
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddComment()}
                 />
-                <button onClick={handleAddComment} style={styles.commentBtn}>Add</button>
+                <button onClick={handleAddComment} style={styles.addBtn}>Add</button>
               </div>
               <div style={styles.commentList}>
                 {comments.length === 0 && <p style={styles.noComments}>No comments yet.</p>}
@@ -175,6 +188,7 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
 
             </div>
 
+            {/* RIGHT COLUMN */}
             <div style={styles.right}>
               <label style={styles.label}>Label</label>
               <select style={styles.select} value={label} onChange={e => setLabel(e.target.value)}>
@@ -183,7 +197,7 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
 
               <label style={styles.label}>Due Date</label>
               <input
-                style={styles.input}
+                style={styles.select}
                 type="date"
                 value={dueDate}
                 onChange={e => setDueDate(e.target.value)}
@@ -197,6 +211,7 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
                 Delete Card
               </button>
             </div>
+
           </div>
         </div>
       </div>
@@ -213,7 +228,7 @@ const styles = {
   titleInput: { flex: 1, background: 'transparent', border: 'none', borderBottom: '2px solid #334155', color: '#e2e8f0', fontSize: '1.3rem', fontWeight: '600', padding: '0.25rem 0' },
   closeBtn: { background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' },
   grid: { display: 'flex', gap: '1.5rem' },
-  left: { flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  left: { flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem' },
   right: { width: '180px', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
   label: { color: '#64748b', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
   textarea: { background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#e2e8f0', padding: '0.75rem', fontSize: '0.9rem', resize: 'vertical' },
@@ -223,9 +238,10 @@ const styles = {
   checkItem: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.5rem', background: '#0f172a', borderRadius: '6px' },
   checkText: { flex: 1, fontSize: '0.85rem' },
   checkDelete: { background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem' },
-  addRow: { display: 'flex', gap: '0.5rem' },
-  commentInput: { flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#e2e8f0', padding: '0.5rem', fontSize: '0.9rem' },
-  commentBtn: { padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' },
+  addRow: { display: 'flex', gap: '0.5rem', alignItems: 'center' },
+  rowInput: { flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#e2e8f0', padding: '0.5rem', fontSize: '0.85rem' },
+  addBtn: { padding: '0.5rem 0.75rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' },
+  divider: { height: '1px', background: '#334155', margin: '0.25rem 0' },
   commentList: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   noComments: { color: '#475569', fontSize: '0.85rem' },
   comment: { display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.5rem', background: '#0f172a', borderRadius: '6px' },
@@ -233,7 +249,6 @@ const styles = {
   commentUser: { color: '#6366f1', fontSize: '0.8rem', fontWeight: '600' },
   commentText: { color: '#e2e8f0', fontSize: '0.85rem', margin: '2px 0 0' },
   select: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
-  input: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
   saveBtn: { padding: '0.75rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
   deleteBtn: { padding: '0.75rem', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', cursor: 'pointer' },
 };
