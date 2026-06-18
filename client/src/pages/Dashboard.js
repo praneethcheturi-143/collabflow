@@ -12,6 +12,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
   const { isDark, setIsDark } = useTheme();
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchBoards();
@@ -71,6 +72,14 @@ function Dashboard() {
       <div style={styles.content}>
         <Analytics boards={boards} />
 
+<div style={styles.searchRow}>
+  <input
+    style={styles.searchInput}
+    placeholder="🔍 Search boards..."
+    value={search}
+    onChange={e => setSearch(e.target.value)}
+  />
+</div>
         <h2 style={styles.heading}>My Boards</h2>
         <form onSubmit={createBoard} style={styles.form}>
           <input
@@ -83,7 +92,7 @@ function Dashboard() {
         </form>
 
         <div style={styles.grid}>
-          {boards.map(board => (
+          {boards.filter(b => b.title.toLowerCase().includes(search.toLowerCase())).map(board => (
             <div key={board.id} style={styles.card}>
               <div onClick={() => navigate(`/board/${board.id}`)} style={styles.cardClickable}>
                 <h3 style={styles.cardTitle}>{board.title}</h3>
@@ -148,6 +157,8 @@ const styles = {
   modalBtns: { display: 'flex', gap: '1rem' },
   cancelBtn: { flex: 1, padding: '0.75rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', cursor: 'pointer' },
   confirmBtn: { flex: 1, padding: '0.75rem', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+  searchRow: { marginBottom: '1rem' },
+searchInput: { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '1rem' },
 };
 
 export default Dashboard;
