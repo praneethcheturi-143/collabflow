@@ -17,6 +17,18 @@
   --success: #22c55e;
 }
 
+:root.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #6366f1;
+  --border: #334155;
+  --danger: #ef4444;
+  --success: #22c55e;
+}
 :root.light {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;

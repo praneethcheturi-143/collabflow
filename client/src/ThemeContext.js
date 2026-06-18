@@ -9,13 +9,15 @@ export function ThemeProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    if (isDark) {
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-    }
-  }, [isDark]);
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  if (isDark) {
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+  }
+}, [isDark]);
 
   return (
     <ThemeContext.Provider value={{ isDark, setIsDark }}>
