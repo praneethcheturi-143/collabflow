@@ -1,18 +1,30 @@
-import { useTheme } from '../ThemeContext';
-import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 import Analytics from '../components/Analytics';
+import { useTheme } from '../ThemeContext';
+import toast from 'react-hot-toast';
+
+const BOARD_COLORS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #3b82f6, #06b6d4)',
+  'linear-gradient(135deg, #10b981, #059669)',
+  'linear-gradient(135deg, #f59e0b, #ef4444)',
+  'linear-gradient(135deg, #ec4899, #8b5cf6)',
+  'linear-gradient(135deg, #14b8a6, #3b82f6)',
+  'linear-gradient(135deg, #f97316, #eab308)',
+  'linear-gradient(135deg, #06b6d4, #10b981)',
+];
 
 function Dashboard() {
   const [boards, setBoards] = useState([]);
   const [title, setTitle] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [search, setSearch] = useState('');
+  const [selectedColor, setSelectedColor] = useState(BOARD_COLORS[0]);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
   const { isDark, setIsDark } = useTheme();
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchBoards();
@@ -27,35 +39,25 @@ function Dashboard() {
     }
   };
 
- const BOARD_COLORS = [
-  'linear-gradient(135deg, #6366f1, #8b5cf6)',
-  'linear-gradient(135deg, #3b82f6, #06b6d4)',
-  'linear-gradient(135deg, #10b981, #059669)',
-  'linear-gradient(135deg, #f59e0b, #ef4444)',
-  'linear-gradient(135deg, #ec4899, #8b5cf6)',
-  'linear-gradient(135deg, #14b8a6, #3b82f6)',
-];
-
-const createBoard = async (e) => {
-  e.preventDefault();
-  if (!title.trim()) return;
-  try {
-    const color = BOARD_COLORS[boards.length % BOARD_COLORS.length];
-    const res = await API.post('/boards', { title, color });
-    setBoards([...boards, res.data]);
-    setTitle('');
-    toast.success('Board created!');
-  } catch (err) {
-    console.error(err);
-  }
-};
+  const createBoard = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    try {
+      const res = await API.post('/boards', { title, color: selectedColor });
+      setBoards([...boards, res.data]);
+      setTitle('');
+      toast.success('Board created!');
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const deleteBoard = async (boardId) => {
     try {
       await API.delete(`/boards/${boardId}`);
       setBoards(boards.filter(b => b.id !== boardId));
-      toast.success('Board deleted!');
       setConfirmDelete(null);
+      toast.success('Board deleted!');
     } catch (err) {
       console.error(err);
     }
@@ -66,6 +68,10 @@ const createBoard = async (e) => {
     navigate('/login');
   };
 
+  const filteredBoards = boards.filter(b =>
+    b.title.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -73,8 +79,8 @@ const createBoard = async (e) => {
         <div style={styles.userRow}>
           <span style={styles.username}>👋 {user?.username}</span>
           <button onClick={() => setIsDark(!isDark)} style={styles.themeBtn}>
-  {isDark ? '☀️' : '🌙'}
-</button>
+            {isDark ? '☀️' : '🌙'}
+          </button>
           <button onClick={logout} style={styles.logoutBtn}>Logout</button>
         </div>
       </div>
@@ -82,15 +88,17 @@ const createBoard = async (e) => {
       <div style={styles.content}>
         <Analytics boards={boards} />
 
-<div style={styles.searchRow}>
-  <input
-    style={styles.searchInput}
-    placeholder="🔍 Search boards..."
-    value={search}
-    onChange={e => setSearch(e.target.value)}
-  />
-</div>
+        <div style={styles.searchRow}>
+          <input
+            style={styles.searchInput}
+            placeholder="🔍 Search boards..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
         <h2 style={styles.heading}>My Boards</h2>
+
         <form onSubmit={createBoard} style={styles.form}>
           <input
             style={styles.input}
@@ -98,14 +106,31 @@ const createBoard = async (e) => {
             value={title}
             onChange={e => setTitle(e.target.value)}
           />
+          <div style={styles.colorPicker}>
+            {BOARD_COLORS.map((color, i) => (
+              <div
+                key={i}
+                onClick={() => setSelectedColor(color)}
+                style={{
+                  ...styles.colorDot,
+                  background: color,
+                  border: selectedColor === color ? '3px solid white' : '3px solid transparent',
+                  transform: selectedColor === color ? 'scale(1.2)' : 'scale(1)',
+                }}
+              />
+            ))}
+          </div>
           <button style={styles.button} type="submit">+ Create Board</button>
         </form>
 
         <div style={styles.grid}>
-          {boards.filter(b => b.title.toLowerCase().includes(search.toLowerCase())).map(board => (
+          {filteredBoards.map(board => (
             <div key={board.id} style={styles.card}>
               <div onClick={() => navigate(`/board/${board.id}`)} style={styles.cardClickable}>
-                <div style={{ ...styles.cardBanner, background: board.color || 'linear-gradient(135deg, #6366f1, #8b5cf6)' }} />
+                <div style={{
+                  ...styles.cardBanner,
+                  background: board.color || 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                }} />
                 <h3 style={styles.cardTitle}>{board.title}</h3>
                 <p style={styles.cardSub}>Click to open →</p>
               </div>
@@ -120,8 +145,10 @@ const createBoard = async (e) => {
           ))}
         </div>
 
-        {boards.length === 0 && (
-          <p style={styles.empty}>No boards yet. Create your first one above!</p>
+        {filteredBoards.length === 0 && (
+          <p style={styles.empty}>
+            {search ? `No boards found for "${search}"` : 'No boards yet. Create your first one above!'}
+          </p>
         )}
       </div>
 
@@ -147,17 +174,22 @@ const styles = {
   logo: { color: 'var(--accent)', fontSize: '1.5rem' },
   userRow: { display: 'flex', alignItems: 'center', gap: '1rem' },
   username: { color: 'var(--text-primary)' },
-  logoutBtn: { padding: '0.4rem 1rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer' },
   themeBtn: { padding: '0.4rem 0.75rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer', fontSize: '1rem' },
+  logoutBtn: { padding: '0.4rem 1rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer' },
   content: { padding: '2rem', maxWidth: '1200px', margin: '0 auto' },
+  searchRow: { marginBottom: '1rem' },
+  searchInput: { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '1rem' },
   heading: { color: 'var(--text-primary)', marginBottom: '1.5rem', fontSize: '1.5rem' },
-  form: { display: 'flex', gap: '1rem', marginBottom: '2rem' },
-  input: { flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '1rem' },
+  form: { display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap' },
+  input: { flex: 1, minWidth: '200px', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '1rem' },
+  colorPicker: { display: 'flex', gap: '0.4rem', alignItems: 'center' },
+  colorDot: { width: '26px', height: '26px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0, transition: 'transform 0.15s' },
   button: { padding: '0.75rem 1.5rem', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' },
   card: { background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', alignItems: 'stretch', overflow: 'hidden' },
-  cardClickable: { flex: 1, padding: '1.5rem', cursor: 'pointer' },
-  cardTitle: { color: 'var(--text-primary)', marginBottom: '0.5rem' },
+  cardClickable: { flex: 1, padding: '1rem', cursor: 'pointer' },
+  cardBanner: { height: '60px', borderRadius: '8px', marginBottom: '0.75rem' },
+  cardTitle: { color: 'var(--text-primary)', marginBottom: '0.5rem', fontSize: '0.95rem', fontWeight: '600' },
   cardSub: { color: 'var(--accent)', fontSize: '0.85rem' },
   deleteBtn: { background: 'transparent', border: 'none', borderLeft: '1px solid var(--border)', padding: '0 1rem', cursor: 'pointer', fontSize: '1rem', color: 'var(--text-muted)' },
   empty: { color: 'var(--text-muted)', textAlign: 'center', marginTop: '3rem', fontSize: '1.1rem' },
@@ -168,9 +200,6 @@ const styles = {
   modalBtns: { display: 'flex', gap: '1rem' },
   cancelBtn: { flex: 1, padding: '0.75rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', cursor: 'pointer' },
   confirmBtn: { flex: 1, padding: '0.75rem', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
-  searchRow: { marginBottom: '1rem' },
-searchInput: { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '1rem' },
-cardBanner: { height: '60px', borderRadius: '8px', marginBottom: '0.75rem' },
 };
 
 export default Dashboard;
