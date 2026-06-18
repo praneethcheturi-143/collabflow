@@ -1,3 +1,4 @@
+import { useTheme } from '../ThemeContext';
 import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
@@ -10,6 +11,7 @@ function Dashboard() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
+  const { isDark, setIsDark } = useTheme();
 
   useEffect(() => {
     fetchBoards();
@@ -59,6 +61,9 @@ function Dashboard() {
         <h1 style={styles.logo}>CollabFlow</h1>
         <div style={styles.userRow}>
           <span style={styles.username}>👋 {user?.username}</span>
+          <button onClick={() => setIsDark(!isDark)} style={styles.themeBtn}>
+  {isDark ? '☀️' : '🌙'}
+</button>
           <button onClick={logout} style={styles.logoutBtn}>Logout</button>
         </div>
       </div>
@@ -142,6 +147,7 @@ const styles = {
   modalBtns: { display: 'flex', gap: '1rem' },
   cancelBtn: { flex: 1, padding: '0.75rem', background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '8px', cursor: 'pointer' },
   confirmBtn: { flex: 1, padding: '0.75rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
+  themeBtn: { padding: '0.4rem 0.75rem', background: 'transparent', border: '1px solid #475569', color: '#94a3b8', borderRadius: '6px', cursor: 'pointer', fontSize: '1rem' },
 };
 
 export default Dashboard;
