@@ -27,18 +27,28 @@ function Dashboard() {
     }
   };
 
-  const createBoard = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    try {
-      const res = await API.post('/boards', { title });
-      setBoards([...boards, res.data]);
-      toast.success('Board created!');
-      setTitle('');
-    } catch (err) {
-      console.error(err);
-    }
-  };
+ const BOARD_COLORS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #3b82f6, #06b6d4)',
+  'linear-gradient(135deg, #10b981, #059669)',
+  'linear-gradient(135deg, #f59e0b, #ef4444)',
+  'linear-gradient(135deg, #ec4899, #8b5cf6)',
+  'linear-gradient(135deg, #14b8a6, #3b82f6)',
+];
+
+const createBoard = async (e) => {
+  e.preventDefault();
+  if (!title.trim()) return;
+  try {
+    const color = BOARD_COLORS[boards.length % BOARD_COLORS.length];
+    const res = await API.post('/boards', { title, color });
+    setBoards([...boards, res.data]);
+    setTitle('');
+    toast.success('Board created!');
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const deleteBoard = async (boardId) => {
     try {
@@ -95,6 +105,7 @@ function Dashboard() {
           {boards.filter(b => b.title.toLowerCase().includes(search.toLowerCase())).map(board => (
             <div key={board.id} style={styles.card}>
               <div onClick={() => navigate(`/board/${board.id}`)} style={styles.cardClickable}>
+                <div style={{ ...styles.cardBanner, background: board.color || 'linear-gradient(135deg, #6366f1, #8b5cf6)' }} />
                 <h3 style={styles.cardTitle}>{board.title}</h3>
                 <p style={styles.cardSub}>Click to open →</p>
               </div>
@@ -159,6 +170,7 @@ const styles = {
   confirmBtn: { flex: 1, padding: '0.75rem', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
   searchRow: { marginBottom: '1rem' },
 searchInput: { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '1rem' },
+cardBanner: { height: '60px', borderRadius: '8px', marginBottom: '0.75rem' },
 };
 
 export default Dashboard;
