@@ -1,4 +1,6 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -13,6 +15,8 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 sequelize.sync({ alter: true }).then(() => console.log('Database synced'));
 
@@ -71,6 +75,12 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error',
+  });
+});
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
