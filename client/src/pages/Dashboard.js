@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +30,7 @@ function Dashboard() {
     try {
       const res = await API.post('/boards', { title });
       setBoards([...boards, res.data]);
+      toast.success('Board created!');
       setTitle('');
     } catch (err) {
       console.error(err);
@@ -39,6 +41,7 @@ function Dashboard() {
     try {
       await API.delete(`/boards/${boardId}`);
       setBoards(boards.filter(b => b.id !== boardId));
+      toast.success('Board deleted!');
       setConfirmDelete(null);
     } catch (err) {
       console.error(err);

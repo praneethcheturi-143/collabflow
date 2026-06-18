@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -93,6 +94,7 @@ function Board() {
       await API.post('/cards', { title, columnId, order: 0, label, dueDate: dueDate || null });
       socket.emit('card-created', { boardId: id });
       await fetchBoard();
+      toast.success('Card added!');
     } catch (err) { console.error(err); }
   };
 
@@ -100,6 +102,7 @@ function Board() {
     try {
       await API.delete(`/cards/${cardId}`);
       await fetchBoard();
+      toast.success('Card deleted!');
     } catch (err) { console.error(err); }
   };
 
@@ -110,6 +113,7 @@ function Board() {
     try {
       await API.put(`/cards/${draggableId}`, { columnId: destination.droppableId, order: destination.index });
       await fetchBoard();
+      toast.success('Card moved!');
       socket.emit('card-moved', { boardId: id });
     } catch (err) { console.error(err); }
   };
