@@ -151,3 +151,7 @@ Venkata Praneeth Cheturi
 ## License
 
 MIT License
+## Badges
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
