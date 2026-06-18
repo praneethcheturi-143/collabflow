@@ -14,10 +14,20 @@ GitHub: https://github.com/praneethcheturi-143/collabflow
 - Kanban Boards with To Do / In Progress / Done columns
 - Drag and Drop card movement powered by @hello-pangea/dnd
 - Real-Time Sync — all changes instantly broadcast via WebSockets (Socket.io)
-- Multi-User collaboration on the same board simultaneously
-- Cloud PostgreSQL database on Neon with optimised indexed queries
-- Dockerised full stack with Docker Compose
-- Auto CI/CD — deploys to Vercel on every GitHub push
+- Card Detail Modal — edit title, description, label, due date
+- Comments — add comments on each card with user avatars
+- Card Labels — color-coded tags (Urgent, Feature, Bug, Done)
+- Due Dates — overdue cards highlighted in red automatically
+- Online Presence — see who is currently viewing the board
+- Analytics Dashboard — total boards, cards, completion rate, overdue count
+- Loading Skeletons — shimmer effect while content loads
+- Rate Limiting — API abuse prevention with express-rate-limit
+- Security Headers — helmet.js for production security
+- Health Check endpoint — /api/health returns server status
+- PostgreSQL cloud database (Neon) with optimised indexed queries
+- Docker + Docker Compose support
+- GitHub Actions CI/CD pipeline — auto lint and build on every push
+- Deployed on Render (backend) + Vercel (frontend)
 
 ---
 
