@@ -3,6 +3,7 @@ import API from '../api/axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { io } from 'socket.io-client';
+import CardModal from '../components/CardModal';
 
 const socket = io('https://collabflow-api.onrender.com');
 
@@ -19,27 +20,6 @@ function getLabelColor(label) {
   return found ? found.color : 'transparent';
 }
 
-function Card({ card, onDelete }) {
-  const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
-  return (
-    <div style={styles.card}>
-      {card.label && card.label !== 'none' && (
-        <div style={{ ...styles.labelBar, background: getLabelColor(card.label) }} />
-      )}
-      <div style={styles.cardContent}>
-        <span style={styles.cardTitle}>{card.title}</span>
-        {card.dueDate && (
-          <span style={{ ...styles.dueDate, color: isOverdue ? '#ef4444' : '#94a3b8' }}>
-            {isOverdue ? '⚠️ ' : '📅 '}
-            {new Date(card.dueDate).toLocaleDateString()}
-          </span>
-        )}
-      </div>
-      <button onClick={() => onDelete(card.id)} style={styles.deleteBtn}>×</button>
-    </div>
-  );
-}
-
 function AddCardForm({ columnId, onAdd }) {
   const [title, setTitle] = useState('');
   const [label, setLabel] = useState('none');
@@ -49,10 +29,7 @@ function AddCardForm({ columnId, onAdd }) {
   const handleAdd = async () => {
     if (!title.trim()) return;
     await onAdd(columnId, title, label, dueDate);
-    setTitle('');
-    setLabel('none');
-    setDueDate('');
-    setOpen(false);
+    setTitle(''); setLabel('none'); setDueDate(''); setOpen(false);
   };
 
   if (!open) return (
@@ -61,23 +38,11 @@ function AddCardForm({ columnId, onAdd }) {
 
   return (
     <div style={styles.addForm}>
-      <input
-        style={styles.cardInput}
-        placeholder="Card title..."
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleAdd()}
-        autoFocus
-      />
+      <input style={styles.cardInput} placeholder="Card title..." value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} autoFocus />
       <select style={styles.select} value={label} onChange={e => setLabel(e.target.value)}>
         {LABELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
       </select>
-      <input
-        style={styles.cardInput}
-        type="date"
-        value={dueDate}
-        onChange={e => setDueDate(e.target.value)}
-      />
+      <input style={styles.cardInput} type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button onClick={handleAdd} style={styles.addBtn}>Add Card</button>
         <button onClick={() => setOpen(false)} style={styles.cancelBtn}>Cancel</button>
@@ -91,6 +56,7 @@ function Board() {
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [selectedCard, setSelectedCard] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
@@ -98,14 +64,11 @@ function Board() {
       try {
         const res = await API.get(`/boards/${id}`);
         setBoard(res.data);
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) { console.error(err); }
     };
 
     fetchBoard();
     socket.emit('join-board', { boardId: id, username: user?.username });
-
     socket.on('board-users', (users) => setOnlineUsers(users));
     socket.on('card-moved', () => fetchBoard());
     socket.on('card-created', () => fetchBoard());
@@ -118,69 +81,62 @@ function Board() {
     };
   }, [id, user?.username]);
 
+  const fetchBoard = async () => {
+    try {
+      const res = await API.get(`/boards/${id}`);
+      setBoard(res.data);
+    } catch (err) { console.error(err); }
+  };
+
   const addCard = async (columnId, title, label, dueDate) => {
     try {
-      await API.post('/cards', {
-        title,
-        columnId,
-        order: 0,
-        label,
-        dueDate: dueDate || null,
-      });
+      await API.post('/cards', { title, columnId, order: 0, label, dueDate: dueDate || null });
       socket.emit('card-created', { boardId: id });
-      const updated = await API.get(`/boards/${id}`);
-      setBoard(updated.data);
-    } catch (err) {
-      console.error(err);
-    }
+      await fetchBoard();
+    } catch (err) { console.error(err); }
   };
 
   const deleteCard = async (cardId) => {
     try {
       await API.delete(`/cards/${cardId}`);
-      const updated = await API.get(`/boards/${id}`);
-      setBoard(updated.data);
-    } catch (err) {
-      console.error(err);
-    }
+      await fetchBoard();
+    } catch (err) { console.error(err); }
   };
 
   const onDragEnd = async (result) => {
     if (!result.destination) return;
     const { source, destination, draggableId } = result;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
-
     try {
-      await API.put(`/cards/${draggableId}`, {
-        columnId: destination.droppableId,
-        order: destination.index,
-      });
-      const updated = await API.get(`/boards/${id}`);
-      setBoard(updated.data);
+      await API.put(`/cards/${draggableId}`, { columnId: destination.droppableId, order: destination.index });
+      await fetchBoard();
       socket.emit('card-moved', { boardId: id });
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   if (!board) return (
     <div style={styles.loading}>
-      <div style={styles.skeleton} />
-      <div style={styles.skeleton} />
-      <div style={styles.skeleton} />
+      <div style={styles.skeleton} /><div style={styles.skeleton} /><div style={styles.skeleton} />
     </div>
   );
 
   return (
     <div style={styles.container}>
+      {selectedCard && (
+        <CardModal
+          card={selectedCard}
+          onClose={() => setSelectedCard(null)}
+          onUpdate={fetchBoard}
+          onDelete={deleteCard}
+        />
+      )}
+
       <div style={styles.header}>
         <button onClick={() => navigate('/')} style={styles.backBtn}>← Back</button>
         <h1 style={styles.title}>{board.title}</h1>
         <div style={styles.onlineUsers}>
           {onlineUsers.map((u, i) => (
-            <div key={i} style={styles.avatar} title={u}>
-              {u.charAt(0).toUpperCase()}
-            </div>
+            <div key={i} style={styles.avatar} title={u}>{u.charAt(0).toUpperCase()}</div>
           ))}
         </div>
       </div>
@@ -196,16 +152,7 @@ function Board() {
 
               <Droppable droppableId={column.id}>
                 {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    style={{
-                      ...styles.cardList,
-                      background: snapshot.isDraggingOver ? '#1a2744' : 'transparent',
-                      borderRadius: '8px',
-                      transition: 'background 0.2s',
-                    }}
-                  >
+                  <div ref={provided.innerRef} {...provided.droppableProps} style={{ ...styles.cardList, background: snapshot.isDraggingOver ? '#1a2744' : 'transparent', borderRadius: '8px', transition: 'background 0.2s' }}>
                     {column.Cards?.sort((a, b) => a.order - b.order).map((card, index) => (
                       <Draggable key={card.id} draggableId={card.id} index={index}>
                         {(provided, snapshot) => (
@@ -213,15 +160,24 @@ function Board() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            style={{
-                              ...provided.draggableProps.style,
-                              opacity: snapshot.isDragging ? 0.8 : 1,
-                              transform: snapshot.isDragging
-                                ? `${provided.draggableProps.style?.transform} rotate(2deg)`
-                                : provided.draggableProps.style?.transform,
-                            }}
+                            style={{ ...provided.draggableProps.style, opacity: snapshot.isDragging ? 0.8 : 1 }}
+                            onClick={() => setSelectedCard(card)}
                           >
-                            <Card card={card} onDelete={deleteCard} />
+                            <div style={styles.card}>
+                              {card.label && card.label !== 'none' && (
+                                <div style={{ ...styles.labelBar, background: getLabelColor(card.label) }} />
+                              )}
+                              <div style={styles.cardContent}>
+                                <span style={styles.cardTitle}>{card.title}</span>
+                                {card.dueDate && (
+                                  <span style={{ ...styles.dueDate, color: new Date(card.dueDate) < new Date() ? '#ef4444' : '#94a3b8' }}>
+                                    {new Date(card.dueDate) < new Date() ? '⚠️ ' : '📅 '}
+                                    {new Date(card.dueDate).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {card.description && <span style={styles.hasDesc}>📝</span>}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </Draggable>
@@ -253,12 +209,12 @@ const styles = {
   columnTitle: { color: '#e2e8f0', fontSize: '1rem', fontWeight: '600' },
   cardCount: { background: '#334155', color: '#94a3b8', borderRadius: '99px', padding: '2px 8px', fontSize: '11px' },
   cardList: { minHeight: '100px', display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '4px' },
-  card: { background: '#0f172a', borderRadius: '8px', color: '#e2e8f0', border: '1px solid #334155', display: 'flex', alignItems: 'stretch', overflow: 'hidden' },
+  card: { background: '#0f172a', borderRadius: '8px', color: '#e2e8f0', border: '1px solid #334155', display: 'flex', alignItems: 'stretch', overflow: 'hidden', cursor: 'pointer' },
   labelBar: { width: '4px', flexShrink: 0 },
   cardContent: { flex: 1, padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' },
   cardTitle: { fontSize: '0.9rem' },
   dueDate: { fontSize: '0.75rem' },
-  deleteBtn: { background: 'transparent', border: 'none', color: '#475569', fontSize: '1.2rem', padding: '0 0.5rem', cursor: 'pointer' },
+  hasDesc: { fontSize: '0.75rem' },
   addCardBtn: { width: '100%', padding: '0.5rem', background: 'transparent', border: '1px dashed #334155', color: '#64748b', borderRadius: '6px', cursor: 'pointer', marginTop: '0.5rem', textAlign: 'left' },
   addForm: { display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' },
   cardInput: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
@@ -266,7 +222,7 @@ const styles = {
   addBtn: { flex: 1, padding: '0.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
   cancelBtn: { padding: '0.5rem 1rem', background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '6px', cursor: 'pointer' },
   loading: { display: 'flex', gap: '1rem', padding: '2rem' },
-  skeleton: { width: '300px', height: '400px', background: '#1e293b', borderRadius: '12px', animation: 'pulse 1.5s infinite' },
+  skeleton: { width: '300px', height: '400px', background: '#1e293b', borderRadius: '12px' },
 };
 
 export default Board;

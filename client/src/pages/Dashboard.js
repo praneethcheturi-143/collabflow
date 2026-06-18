@@ -1,3 +1,4 @@
+import Analytics from '../components/Analytics';
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
@@ -49,6 +50,7 @@ function Dashboard() {
       </div>
 
       <div style={styles.content}>
+        <Analytics boards={boards} />
         <h2 style={styles.heading}>My Boards</h2>
         <form onSubmit={createBoard} style={styles.form}>
           <input
