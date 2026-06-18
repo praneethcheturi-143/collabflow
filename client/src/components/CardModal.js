@@ -20,7 +20,7 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState([]);
   const [checklist, setChecklist] = useState([]);
-const [checkItem, setCheckItem] = useState('');
+  const [checkItem, setCheckItem] = useState('');
 
   useEffect(() => {
     fetchComments();
@@ -31,62 +31,23 @@ const [checkItem, setCheckItem] = useState('');
     try {
       const res = await API.get(`/cards/${card.id}/comments`);
       setComments(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
+
   const fetchChecklist = async () => {
-  try {
-    const res = await API.get(`/cards/${card.id}/checklist`);
-    setChecklist(res.data);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const addCheckItem = async () => {
-  if (!checkItem.trim()) return;
-  try {
-    await API.post(`/cards/${card.id}/checklist`, { text: checkItem });
-    setCheckItem('');
-    fetchChecklist();
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const toggleCheckItem = async (itemId, checked) => {
-  try {
-    await API.put(`/cards/${card.id}/checklist/${itemId}`, { checked: !checked });
-    fetchChecklist();
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const deleteCheckItem = async (itemId) => {
-  try {
-    await API.delete(`/cards/${card.id}/checklist/${itemId}`);
-    fetchChecklist();
-  } catch (err) {
-    console.error(err);
-  }
-};
+    try {
+      const res = await API.get(`/cards/${card.id}/checklist`);
+      setChecklist(res.data);
+    } catch (err) { console.error(err); }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await API.put(`/cards/${card.id}`, {
-        title,
-        description,
-        label,
-        dueDate: dueDate || null,
-      });
+      await API.put(`/cards/${card.id}`, { title, description, label, dueDate: dueDate || null });
       onUpdate();
       onClose();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
     setSaving(false);
   };
 
@@ -96,12 +57,36 @@ const deleteCheckItem = async (itemId) => {
       await API.post(`/cards/${card.id}/comments`, { text: comment });
       setComment('');
       fetchComments();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
+  };
+
+  const addCheckItem = async () => {
+    if (!checkItem.trim()) return;
+    try {
+      await API.post(`/cards/${card.id}/checklist`, { text: checkItem });
+      setCheckItem('');
+      fetchChecklist();
+    } catch (err) { console.error(err); }
+  };
+
+  const toggleCheckItem = async (itemId, checked) => {
+    try {
+      await API.put(`/cards/${card.id}/checklist/${itemId}`, { checked: !checked });
+      fetchChecklist();
+    } catch (err) { console.error(err); }
+  };
+
+  const deleteCheckItem = async (itemId) => {
+    try {
+      await API.delete(`/cards/${card.id}/checklist/${itemId}`);
+      fetchChecklist();
+    } catch (err) { console.error(err); }
   };
 
   const labelColor = LABELS.find(l => l.value === label)?.color || 'transparent';
+  const checklistProgress = checklist.length > 0
+    ? Math.round((checklist.filter(i => i.checked).length / checklist.length) * 100)
+    : 0;
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -110,27 +95,62 @@ const deleteCheckItem = async (itemId) => {
 
         <div style={styles.body}>
           <div style={styles.topRow}>
-            <input
-              style={styles.titleInput}
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-            />
+            <input style={styles.titleInput} value={title} onChange={e => setTitle(e.target.value)} />
             <button onClick={onClose} style={styles.closeBtn}>×</button>
           </div>
 
           <div style={styles.grid}>
             <div style={styles.left}>
+
+              {/* Description */}
               <label style={styles.label}>Description</label>
               <textarea
                 style={styles.textarea}
                 placeholder="Add a description..."
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                rows={4}
+                rows={3}
               />
 
+              {/* Checklist */}
+              <label style={styles.label}>
+                Checklist {checklist.length > 0 && `(${checklist.filter(i => i.checked).length}/${checklist.length})`}
+              </label>
+              {checklist.length > 0 && (
+                <div style={styles.progressBar}>
+                  <div style={{ ...styles.progressFill, width: `${checklistProgress}%` }} />
+                </div>
+              )}
+              <div style={styles.checkItems}>
+                {checklist.map(item => (
+                  <div key={item.id} style={styles.checkItem}>
+                    <input
+                      type="checkbox"
+                      checked={item.checked}
+                      onChange={() => toggleCheckItem(item.id, item.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ ...styles.checkText, textDecoration: item.checked ? 'line-through' : 'none', color: item.checked ? '#475569' : '#e2e8f0' }}>
+                      {item.text}
+                    </span>
+                    <button onClick={() => deleteCheckItem(item.id)} style={styles.checkDelete}>×</button>
+                  </div>
+                ))}
+              </div>
+              <div style={styles.addRow}>
+                <input
+                  style={styles.commentInput}
+                  placeholder="Add checklist item..."
+                  value={checkItem}
+                  onChange={e => setCheckItem(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addCheckItem()}
+                />
+                <button onClick={addCheckItem} style={styles.commentBtn}>Add</button>
+              </div>
+
+              {/* Comments */}
               <label style={styles.label}>Comments</label>
-              <div style={styles.commentBox}>
+              <div style={styles.addRow}>
                 <input
                   style={styles.commentInput}
                   placeholder="Write a comment..."
@@ -138,39 +158,6 @@ const deleteCheckItem = async (itemId) => {
                   onChange={e => setComment(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddComment()}
                 />
-
-                <label style={styles.label}>Checklist {checklist.length > 0 && `(${checklist.filter(i => i.checked).length}/${checklist.length})`}</label>
-{checklist.length > 0 && (
-  <div style={styles.progressBar}>
-    <div style={{ ...styles.progressFill, width: `${Math.round((checklist.filter(i => i.checked).length / checklist.length) * 100)}%` }} />
-  </div>
-)}
-<div style={styles.checkItems}>
-  {checklist.map(item => (
-    <div key={item.id} style={styles.checkItem}>
-      <input
-        type="checkbox"
-        checked={item.checked}
-        onChange={() => toggleCheckItem(item.id, item.checked)}
-        style={{ cursor: 'pointer' }}
-      />
-      <span style={{ ...styles.checkText, textDecoration: item.checked ? 'line-through' : 'none', color: item.checked ? '#475569' : '#e2e8f0' }}>
-        {item.text}
-      </span>
-      <button onClick={() => deleteCheckItem(item.id)} style={styles.checkDelete}>×</button>
-    </div>
-  ))}
-</div>
-<div style={styles.commentBox}>
-  <input
-    style={styles.commentInput}
-    placeholder="Add checklist item..."
-    value={checkItem}
-    onChange={e => setCheckItem(e.target.value)}
-    onKeyDown={e => e.key === 'Enter' && addCheckItem()}
-  />
-  <button onClick={addCheckItem} style={styles.commentBtn}>Add</button>
-</div>
                 <button onClick={handleAddComment} style={styles.commentBtn}>Add</button>
               </div>
               <div style={styles.commentList}>
@@ -185,6 +172,7 @@ const deleteCheckItem = async (itemId) => {
                   </div>
                 ))}
               </div>
+
             </div>
 
             <div style={styles.right}>
@@ -229,7 +217,13 @@ const styles = {
   right: { width: '180px', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
   label: { color: '#64748b', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
   textarea: { background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#e2e8f0', padding: '0.75rem', fontSize: '0.9rem', resize: 'vertical' },
-  commentBox: { display: 'flex', gap: '0.5rem' },
+  progressBar: { height: '6px', background: '#334155', borderRadius: '99px', overflow: 'hidden' },
+  progressFill: { height: '100%', background: '#22c55e', borderRadius: '99px', transition: 'width 0.3s ease' },
+  checkItems: { display: 'flex', flexDirection: 'column', gap: '0.4rem' },
+  checkItem: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.5rem', background: '#0f172a', borderRadius: '6px' },
+  checkText: { flex: 1, fontSize: '0.85rem' },
+  checkDelete: { background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem' },
+  addRow: { display: 'flex', gap: '0.5rem' },
   commentInput: { flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#e2e8f0', padding: '0.5rem', fontSize: '0.9rem' },
   commentBtn: { padding: '0.5rem 1rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' },
   commentList: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
@@ -242,12 +236,6 @@ const styles = {
   input: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
   saveBtn: { padding: '0.75rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
   deleteBtn: { padding: '0.75rem', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', cursor: 'pointer' },
-  progressBar: { height: '6px', background: '#334155', borderRadius: '99px', overflow: 'hidden', marginBottom: '0.5rem' },
-progressFill: { height: '100%', background: '#22c55e', borderRadius: '99px', transition: 'width 0.3s ease' },
-checkItems: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' },
-checkItem: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.5rem', background: '#0f172a', borderRadius: '6px' },
-checkText: { flex: 1, fontSize: '0.85rem' },
-checkDelete: { background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem' },
 };
 
 export default CardModal;
