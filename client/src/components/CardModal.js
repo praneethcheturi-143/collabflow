@@ -19,9 +19,12 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
   const [saving, setSaving] = useState(false);
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState([]);
+  const [checklist, setChecklist] = useState([]);
+const [checkItem, setCheckItem] = useState('');
 
   useEffect(() => {
     fetchComments();
+    fetchChecklist();
   }, []);
 
   const fetchComments = async () => {
@@ -32,6 +35,43 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
       console.error(err);
     }
   };
+  const fetchChecklist = async () => {
+  try {
+    const res = await API.get(`/cards/${card.id}/checklist`);
+    setChecklist(res.data);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const addCheckItem = async () => {
+  if (!checkItem.trim()) return;
+  try {
+    await API.post(`/cards/${card.id}/checklist`, { text: checkItem });
+    setCheckItem('');
+    fetchChecklist();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const toggleCheckItem = async (itemId, checked) => {
+  try {
+    await API.put(`/cards/${card.id}/checklist/${itemId}`, { checked: !checked });
+    fetchChecklist();
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const deleteCheckItem = async (itemId) => {
+  try {
+    await API.delete(`/cards/${card.id}/checklist/${itemId}`);
+    fetchChecklist();
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const handleSave = async () => {
     setSaving(true);
@@ -98,6 +138,39 @@ function CardModal({ card, onClose, onUpdate, onDelete }) {
                   onChange={e => setComment(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddComment()}
                 />
+
+                <label style={styles.label}>Checklist {checklist.length > 0 && `(${checklist.filter(i => i.checked).length}/${checklist.length})`}</label>
+{checklist.length > 0 && (
+  <div style={styles.progressBar}>
+    <div style={{ ...styles.progressFill, width: `${Math.round((checklist.filter(i => i.checked).length / checklist.length) * 100)}%` }} />
+  </div>
+)}
+<div style={styles.checkItems}>
+  {checklist.map(item => (
+    <div key={item.id} style={styles.checkItem}>
+      <input
+        type="checkbox"
+        checked={item.checked}
+        onChange={() => toggleCheckItem(item.id, item.checked)}
+        style={{ cursor: 'pointer' }}
+      />
+      <span style={{ ...styles.checkText, textDecoration: item.checked ? 'line-through' : 'none', color: item.checked ? '#475569' : '#e2e8f0' }}>
+        {item.text}
+      </span>
+      <button onClick={() => deleteCheckItem(item.id)} style={styles.checkDelete}>×</button>
+    </div>
+  ))}
+</div>
+<div style={styles.commentBox}>
+  <input
+    style={styles.commentInput}
+    placeholder="Add checklist item..."
+    value={checkItem}
+    onChange={e => setCheckItem(e.target.value)}
+    onKeyDown={e => e.key === 'Enter' && addCheckItem()}
+  />
+  <button onClick={addCheckItem} style={styles.commentBtn}>Add</button>
+</div>
                 <button onClick={handleAddComment} style={styles.commentBtn}>Add</button>
               </div>
               <div style={styles.commentList}>
@@ -169,6 +242,12 @@ const styles = {
   input: { padding: '0.5rem', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '0.9rem' },
   saveBtn: { padding: '0.75rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
   deleteBtn: { padding: '0.75rem', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', cursor: 'pointer' },
+  progressBar: { height: '6px', background: '#334155', borderRadius: '99px', overflow: 'hidden', marginBottom: '0.5rem' },
+progressFill: { height: '100%', background: '#22c55e', borderRadius: '99px', transition: 'width 0.3s ease' },
+checkItems: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' },
+checkItem: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.5rem', background: '#0f172a', borderRadius: '6px' },
+checkText: { flex: 1, fontSize: '0.85rem' },
+checkDelete: { background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem' },
 };
 
 export default CardModal;

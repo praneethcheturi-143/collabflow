@@ -15,6 +15,15 @@ const Comment = sequelize.define('Comment', {
 
 Comment.sync({ alter: true });
 
+const Checklist = sequelize.define('Checklist', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  text: { type: DataTypes.STRING, allowNull: false },
+  checked: { type: DataTypes.BOOLEAN, defaultValue: false },
+  cardId: { type: DataTypes.UUID, allowNull: false },
+});
+
+Checklist.sync({ alter: true });
+
 router.post('/', auth, async (req, res) => {
   try {
     const { title, description, columnId, order, label, dueDate } = req.body;
@@ -74,4 +83,43 @@ router.post('/:id/comments', auth, async (req, res) => {
   }
 });
 
+router.get('/:id/checklist', auth, async (req, res) => {
+  try {
+    const items = await Checklist.findAll({ where: { cardId: req.params.id }, order: [['createdAt', 'ASC']] });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/:id/checklist', auth, async (req, res) => {
+  try {
+    const item = await Checklist.create({ text: req.body.text, cardId: req.params.id });
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.put('/:id/checklist/:itemId', auth, async (req, res) => {
+  try {
+    const item = await Checklist.findByPk(req.params.itemId);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    await item.update({ checked: req.body.checked });
+    res.json(item);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.delete('/:id/checklist/:itemId', auth, async (req, res) => {
+  try {
+    const item = await Checklist.findByPk(req.params.itemId);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    await item.destroy();
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 module.exports = router;
